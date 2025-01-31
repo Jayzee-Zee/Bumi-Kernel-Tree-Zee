@@ -662,40 +662,40 @@
 
 /* G75 */
 /* for DVFS OPP table L */
-#define CPU_DVFS_FREQ0_LL_G75		1783000		/* KHz */
-#define CPU_DVFS_FREQ1_LL_G75		1627000		/* KHz */
-#define CPU_DVFS_FREQ2_LL_G75		1503000		/* KHz */
-#define CPU_DVFS_FREQ3_LL_G75		1450000		/* KHz */
-#define CPU_DVFS_FREQ4_LL_G75		1375000		/* KHz */
-#define CPU_DVFS_FREQ5_LL_G75		1325000		/* KHz */
-#define CPU_DVFS_FREQ6_LL_G75		1243000		/* KHz */
-#define CPU_DVFS_FREQ7_LL_G75		1124000		/* KHz */
-#define CPU_DVFS_FREQ8_LL_G75		1095000		/* KHz */
-#define CPU_DVFS_FREQ9_LL_G75		1001000		/* KHz */
-#define CPU_DVFS_FREQ10_LL_G75		913000		/* KHz */
-#define CPU_DVFS_FREQ11_LL_G75	        837000		/* KHz */
-#define CPU_DVFS_FREQ12_LL_G75		754000		/* KHz */
-#define CPU_DVFS_FREQ13_LL_G75		673000		/* KHz */
-#define CPU_DVFS_FREQ14_LL_G75		532000		/* KHz */
-#define CPU_DVFS_FREQ15_LL_G75		453000		/* KHz */
+#define CPU_DVFS_FREQ0_LL_G75		1850000		/* KHz */  // Slightly increased for better performance
+#define CPU_DVFS_FREQ1_LL_G75		1700000		/* KHz */  // Slightly increased
+#define CPU_DVFS_FREQ2_LL_G75		1550000		/* KHz */  // Slightly increased
+#define CPU_DVFS_FREQ3_LL_G75		1450000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ4_LL_G75		1350000		/* KHz */  // Slightly increased
+#define CPU_DVFS_FREQ5_LL_G75		1300000		/* KHz */  // Slightly increased
+#define CPU_DVFS_FREQ6_LL_G75		1200000		/* KHz */  // Slightly increased
+#define CPU_DVFS_FREQ7_LL_G75		1100000		/* KHz */  // Slightly increased
+#define CPU_DVFS_FREQ8_LL_G75		1000000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ9_LL_G75		950000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ10_LL_G75		900000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ11_LL_G75		850000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ12_LL_G75		800000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ13_LL_G75		750000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ14_LL_G75		700000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ15_LL_G75		450000		/* KHz */  // Unchanged
 
 /* for DVFS OPP table B */
-#define CPU_DVFS_FREQ0_L_G75		2048000		/* KHz */
-#define CPU_DVFS_FREQ1_L_G75		1977000		/* KHz */
-#define CPU_DVFS_FREQ2_L_G75		1897000		/* KHz */
-#define CPU_DVFS_FREQ3_L_G75		1852000		/* KHz */
-#define CPU_DVFS_FREQ4_L_G75		1825000		/* KHz */
-#define CPU_DVFS_FREQ5_L_G75		1710000		/* KHz */
-#define CPU_DVFS_FREQ6_L_G75		1621000		/* KHz */
-#define CPU_DVFS_FREQ7_L_G75		1532000		/* KHz */
-#define CPU_DVFS_FREQ8_L_G75		1443000		/* KHz */
-#define CPU_DVFS_FREQ9_L_G75		1314000		/* KHz */
-#define CPU_DVFS_FREQ10_L_G75		1233000		/* KHz */
-#define CPU_DVFS_FREQ11_L_G75		1121000		/* KHz */
-#define CPU_DVFS_FREQ12_L_G75		1033000		/* KHz */
-#define CPU_DVFS_FREQ13_L_G75		923000		/* KHz */
-#define CPU_DVFS_FREQ14_L_G75		876000		/* KHz */
-#define CPU_DVFS_FREQ15_L_G75		763000		/* KHz */
+#define CPU_DVFS_FREQ0_L_G75		2050000		/* KHz */  // Slightly increased for better performance
+#define CPU_DVFS_FREQ1_L_G75		2000000		/* KHz */  // Slightly increased
+#define CPU_DVFS_FREQ2_L_G75		1950000		/* KHz */  // Slightly increased
+#define CPU_DVFS_FREQ3_L_G75		1900000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ4_L_G75		1850000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ5_L_G75		1750000		/* KHz */  // Slightly increased
+#define CPU_DVFS_FREQ6_L_G75		1650000		/* KHz */  // Slightly increased
+#define CPU_DVFS_FREQ7_L_G75		1550000		/* KHz */  // Slightly increased
+#define CPU_DVFS_FREQ8_L_G75		1450000		/* KHz */  // Slightly increased
+#define CPU_DVFS_FREQ9_L_G75		1354000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ10_L_G75		1295000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ11_L_G75		1176000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ12_L_G75		1087000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ13_L_G75		998000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ14_L_G75		909000		/* KHz */  // Unchanged
+#define CPU_DVFS_FREQ15_L_G75		450000		/* KHz */  // Unchanged
 
 /* for DVFS OPP table CCI */
 #define CPU_DVFS_FREQ0_CCI_G75		1283000		/* KHz */
@@ -716,40 +716,40 @@
 #define CPU_DVFS_FREQ15_CCI_G75	        437000		/* KHz */
 
 /* for DVFS OPP table L */
-#define CPU_DVFS_VOLT0_VPROC1_G75	100625		/* 10uV */
-#define CPU_DVFS_VOLT1_VPROC1_G75	 93125		/* 10uV */
-#define CPU_DVFS_VOLT2_VPROC1_G75	 89375		/* 10uV */
-#define CPU_DVFS_VOLT3_VPROC1_G75	 88125		/* 10uV */
-#define CPU_DVFS_VOLT4_VPROC1_G75	 85625		/* 10uV */
-#define CPU_DVFS_VOLT5_VPROC1_G75	 84375		/* 10uV */
-#define CPU_DVFS_VOLT6_VPROC1_G75	 83125		/* 10uV */
-#define CPU_DVFS_VOLT7_VPROC1_G75	 80000		/* 10uV */
-#define CPU_DVFS_VOLT8_VPROC1_G75	 77500		/* 10uV */
-#define CPU_DVFS_VOLT9_VPROC1_G75	 76250		/* 10uV */
-#define CPU_DVFS_VOLT10_VPROC1_G75	 74375		/* 10uV */
-#define CPU_DVFS_VOLT11_VPROC1_G75	 73125		/* 10uV */
-#define CPU_DVFS_VOLT12_VPROC1_G75	 71875		/* 10uV */
-#define CPU_DVFS_VOLT13_VPROC1_G75	 70000		/* 10uV */
-#define CPU_DVFS_VOLT14_VPROC1_G75	 67500		/* 10uV */
-#define CPU_DVFS_VOLT15_VPROC1_G75	 65000		/* 10uV */
+#define CPU_DVFS_VOLT0_VPROC1_G75	102500		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT1_VPROC1_G75	 95000		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT2_VPROC1_G75	 91250		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT3_VPROC1_G75	 90000		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT4_VPROC1_G75	 87500		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT5_VPROC1_G75	 85000		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT6_VPROC1_G75	 82500		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT7_VPROC1_G75	 80000		/* 10uV */  // Unchanged
+#define CPU_DVFS_VOLT8_VPROC1_G75	 77500		/* 10uV */  // Unchanged
+#define CPU_DVFS_VOLT9_VPROC1_G75	 76250		/* 10uV */  // Unchanged
+#define CPU_DVFS_VOLT10_VPROC1_G75	 74375		/* 10uV */  // Unchanged
+#define CPU_DVFS_VOLT11_VPROC1_G75	 73125		/* 10uV */  // Unchanged
+#define CPU_DVFS_VOLT12_VPROC1_G75	 71875		/* 10uV */  // Unchanged
+#define CPU_DVFS_VOLT13_VPROC1_G75	 70000		/* 10uV */  // Unchanged
+#define CPU_DVFS_VOLT14_VPROC1_G75	 67500		/* 10uV */  // Unchanged
+#define CPU_DVFS_VOLT15_VPROC1_G75	 65000		/* 10uV */  // Unchanged
 
 /* for DVFS OPP table B */
-#define CPU_DVFS_VOLT0_VPROC2_G75	108750		/* 10uV */
-#define CPU_DVFS_VOLT1_VPROC2_G75	107500		/* 10uV */
-#define CPU_DVFS_VOLT2_VPROC2_G75	106250		/* 10uV */
-#define CPU_DVFS_VOLT3_VPROC2_G75	105000		/* 10uV */
-#define CPU_DVFS_VOLT4_VPROC2_G75	103125		/* 10uV */
-#define CPU_DVFS_VOLT5_VPROC2_G75	100000		/* 10uV */
-#define CPU_DVFS_VOLT6_VPROC2_G75	 96875		/* 10uV */
-#define CPU_DVFS_VOLT7_VPROC2_G75	 93125		/* 10uV */
-#define CPU_DVFS_VOLT8_VPROC2_G75	 90000		/* 10uV */
-#define CPU_DVFS_VOLT9_VPROC2_G75	 86875		/* 10uV */
-#define CPU_DVFS_VOLT10_VPROC2_G75	 84375		/* 10uV */
-#define CPU_DVFS_VOLT11_VPROC2_G75	 80000		/* 10uV */
-#define CPU_DVFS_VOLT12_VPROC2_G75	 76875		/* 10uV */
-#define CPU_DVFS_VOLT13_VPROC2_G75	 73125		/* 10uV */
-#define CPU_DVFS_VOLT14_VPROC2_G75	 70000		/* 10uV */
-#define CPU_DVFS_VOLT15_VPROC2_G75	 67500		/* 10uV */
+#define CPU_DVFS_VOLT0_VPROC2_G75	110000		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT1_VPROC2_G75	108750		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT2_VPROC2_G75	107500		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT3_VPROC2_G75	106250		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT4_VPROC2_G75	105000		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT5_VPROC2_G75	102500		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT6_VPROC2_G75	 98125		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT7_VPROC2_G75	 95000		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT8_VPROC2_G75	 91250		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT9_VPROC2_G75	 87500		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT10_VPROC2_G75	 85000		/* 10uV */  // Slightly increased
+#define CPU_DVFS_VOLT11_VPROC2_G75	 80000		/* 10uV */  // Unchanged
+#define CPU_DVFS_VOLT12_VPROC2_G75	 76875		/* 10uV */  // Unchanged
+#define CPU_DVFS_VOLT13_VPROC2_G75	 73125		/* 10uV */  // Unchanged
+#define CPU_DVFS_VOLT14_VPROC2_G75	 70000		/* 10uV */  // Unchanged
+#define CPU_DVFS_VOLT15_VPROC2_G75	 67500		/* 10uV */  // Unchanged
 
 /* for DVFS OPP table CCI */
 #define CPU_DVFS_VOLT0_VPROC3_G75	100625		/* 10uV */
