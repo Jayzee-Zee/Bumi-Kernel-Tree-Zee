@@ -140,5 +140,5 @@ quiet_cmd_genikh = CHK     $(obj)/kheaders_data.tar.xz
 cmd_genikh = $(CONFIG_SHELL) $(srctree)/kernel/gen_kheaders.sh $@
 $(obj)/kheaders_data.tar.xz: FORCE
 	$(call cmd,genikh)
-
+#remove
 clean-files := kheaders_data.tar.xz kheaders.md5
