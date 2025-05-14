@@ -19,7 +19,6 @@
 
 #include <mt-plat/aee.h>
 
-void __attribute__((weak)) aee_wdt_zap_locks(void) { }
 
 struct module_sect_attr {
 	struct module_attribute mattr;
