@@ -290,37 +290,37 @@ static struct LCM_setting_table lcm_suspend_no_off_setting[] = {
 /*C3T code for HQ-218218 by chenzimo at 2022/8/09 end*/
 
 static struct LCM_setting_table init_setting_vdo[] = {
-/* C3T code for HQ-244579 by sunfeiting at 2022/09/16 start */
-	{0xFF, 1, {0x24}},
-	{0xFB, 1, {0x01}},
-	{0x5A, 1, {0xA2}},
-	{0x5B, 1, {0x9B}},
-	{0x5C, 1, {0x8C}},
-/* C3T code for HQ-244579 by sunfeiting at 2022/09/16 end */
+/* HQ-244579 block */
+    {0xFF, 1, {0x24}},
+    {0xFB, 1, {0x01}},
+    {0x5A, 1, {0xA2}},
+    {0x5B, 1, {0x9B}},
+    {0x5C, 1, {0x8C}},
 
-/* C3T code for HQ-219022 by jiangyue at 2022/08/22 start */
-	{0xFF, 1, {0x24}},
-	{0xFB, 1, {0x01}},
-	{0xC3, 1, {0x01}},
-	{0xC4, 1, {0x25}},
-	{0xC7, 1, {0x08}},
+/* HQ-219022 block — OC injection here */
+    {0xFF, 1, {0x24}},
+    {0xFB, 1, {0x01}},
+    /* -------- OC tweak ---------- */
+    {0xC3, 1, {0x01}},       /* keep unlocking */
+    {0xC4, 1, {0x25}},       /* untouched */
+    {0xC7, 1, {0x0C}},       /* was {0x08} → bump to 0x0C (~+20 %) */
+    /*  Original line for quick revert:
+    // {0xC7, 1, {0x08}},  */
+    /* --------------------------- */
 
-	{0xFF, 1, {0x10}},
-	{0xFB, 1, {0x01}},
-	{0x35, 1, {0x00}},
-/* C3T code for HQ-219022 by jiangyue at 2022/08/22 end */
+    {0xFF, 1, {0x10}},
+    {0xFB, 1, {0x01}},
+    {0x35, 1, {0x00}},       /* TE-line on */
 
-/* C3T code for HQ-235672 by jiangyue at 2022/09/29 start */
-/* C3T code for HQ-236129 by jiangyue at 2022/10/31 start */
-	{0x11, 0, {} },
-/*C3T code for HQ-262330 by jiangyue at 2022/11/08 start*/
-	{REGFLAG_DELAY, 100, {} },
-/*C3T code for HQ-262330 by jiangyue at 2022/11/08 end*/
-	{0x29, 0, {} },
-	{REGFLAG_DELAY, 40, {} }
-/* C3T code for HQ-236129 by jiangyue at 2022/10/31 end */
-/* C3T code for HQ-235672 by jiangyue at 2022/09/29 end */
+/* Sleep-out + display-on */
+    {0x11, 0, {}},
+    {REGFLAG_DELAY, 100, {}},
+    {0x29, 0, {}},
+    {REGFLAG_DELAY, 40,  {}},
+
+    /* END */
 };
+
 
 static struct LCM_setting_table bl_level[] = {
 	{0x51, 1, {0xFF} },
