@@ -381,61 +381,49 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 	params->dsi.switch_mode_enable = 0;
 
 	/* DSI */
-	/* Command mode setting */
 	params->dsi.LANE_NUM = LCM_FOUR_LANE;
-	/* The following defined the fomat for data coming from LCD engine. */
 	params->dsi.data_format.color_order = LCM_COLOR_ORDER_RGB;
 	params->dsi.data_format.trans_seq = LCM_DSI_TRANS_SEQ_MSB_FIRST;
 	params->dsi.data_format.padding = LCM_DSI_PADDING_ON_LSB;
 	params->dsi.data_format.format = LCM_DSI_FORMAT_RGB888;
 
-	/* Highly depends on LCD driver capability. */
 	params->dsi.packet_size = 256;
-	/* video mode timing */
-
 	params->dsi.PS = LCM_PACKED_PS_24BIT_RGB888;
 
 	params->dsi.vertical_sync_active = 2;
 	params->dsi.vertical_backporch = 256;
-	params->dsi.vertical_frontporch = 10;
-//	params->dsi.vertical_frontporch_for_low_power = 750;	//OTM no data
+	params->dsi.vertical_frontporch = 6; // OC tweak from 10 to 6
 	params->dsi.vertical_active_line = FRAME_HEIGHT;
 
-/* C3T code for HQ-237547 by jiangyue at 2022/09/01 start */
-/* C3T code for HQ-251504 by jiangyue at 2022/09/27 start */
 	params->dsi.horizontal_sync_active = 10;
 	params->dsi.horizontal_backporch = 32;
 	params->dsi.horizontal_frontporch = 16;
 	params->dsi.horizontal_active_pixel = FRAME_WIDTH;
-	/* params->dsi.ssc_disable = 1; */
+
 #ifndef CONFIG_FPGA_EARLY_PORTING
-	/* this value must be in MTK suggested table */
-/* C3T code for HQ-223331 by jiangyue at 2022/08/01 start */
-	params->dsi.PLL_CLOCK = 288;
-/* C3T code for HQ-251504 by jiangyue at 2022/09/27 end */
-/* C3T code for HQ-223331 by jiangyue at 2022/08/01 end */
-/* C3T code for HQ-237547 by jiangyue at 2022/09/01 end */
+	params->dsi.PLL_CLOCK = 336; // OC tweak from 288 to 336
 	params->dsi.PLL_CK_CMD = 480;
 #else
 	params->dsi.pll_div1 = 0;
 	params->dsi.pll_div2 = 0;
 	params->dsi.fbk_div = 0x1;
 #endif
+
 	params->dsi.CLK_HS_POST = 36;
 	params->dsi.clk_lp_per_line_enable = 0;
-/* C3T code for HQ-219022 by jiangyue at 2022/08/22 start */
+
 #ifdef CONFIG_MI_ERRFLAG_ESD_CHECK_ENABLE
 	params->dsi.esd_check_enable = 1;
 #endif
+
 	params->dsi.customization_esd_check_enable = 0;
 	params->dsi.lcm_esd_check_table[0].cmd = 0;
-/* C3T code for HQ-219022 by jiangyue at 2022/08/22 end */
 	params->dsi.lcm_esd_check_table[0].count = 1;
 	params->dsi.lcm_esd_check_table[0].para_list[0] = 0x9c;
 
-	/* for ARR 2.0 */
-	//params->max_refresh_rate = 60;
-	//params->min_refresh_rate = 45;
+	// OC unlock for Android Display Framework
+	params->max_refresh_rate = 72;
+	params->min_refresh_rate = 60;
 }
 
 /*static int lcm_bias_regulator_init(void)
