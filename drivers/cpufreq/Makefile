@@ -118,3 +118,4 @@ obj-$(CONFIG_SPARC_US3_CPUFREQ)		+= sparc-us3-cpufreq.o
 obj-$(CONFIG_UNICORE32)			+= unicore2-cpufreq.o
 # Add cpu governor
 obj-$(CONFIG_CPU_FREQ_GOV_MAXOVERDRIVE)	+= cpufreq_maxoverdrive.o
+obj-$(CONFIG_CPU_FREQ_GOV_THERMO_BALANCE) += cpufreq_thermo_balance.o
