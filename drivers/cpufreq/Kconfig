@@ -130,6 +130,17 @@ config CPU_FREQ_GOV_MAXOVERDRIVE
 	help
 	  Extreme performance governor. Cranks to max CPU freq. Meant for overclockers and maniacs.
 
+config CPU_FREQ_GOV_THERMO_BALANCE
+	tristate "'thermo_balance' governor"
+	default n
+	help
+	  This governor tries to balance heat, battery, and performance.
+	  It scales up only under real CPU load and avoids overheating or
+	  wasting power when idling.
+
+	  To compile this governor into the kernel, choose Y here.
+	  If unsure, say N.
+
 config CPU_FREQ_GOV_POWERSAVE
 	tristate "'powersave' governor"
 	help
