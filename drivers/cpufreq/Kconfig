@@ -124,6 +124,12 @@ config CPU_FREQ_GOV_PERFORMANCE
 
 	  If in doubt, say Y.
 
+config CPU_FREQ_GOV_MAXOVERDRIVE
+	bool "'maxoverdrive' governor"
+	default y
+	help
+	  Extreme performance governor. Cranks to max CPU freq. Meant for overclockers and maniacs.
+
 config CPU_FREQ_GOV_POWERSAVE
 	tristate "'powersave' governor"
 	help
