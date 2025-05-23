@@ -1,107 +1,69 @@
-// SPDX-License-Identifier: GPL-2.0
 #include <linux/cpufreq.h>
-#include <linux/module.h>
 #include <linux/kernel.h>
-#include <linux/init.h>
+#include <linux/module.h>
 #include <linux/power_supply.h>
-#include <linux/slab.h>
-#include <linux/jiffies.h>
+#include <linux/timer.h>
 
-#define GOV_NAME "thermaless_balance"
-#define GOV_CHECK_INTERVAL (HZ / 2)
+#define THERMO_LOAD_HIGH 75
+#define THERMO_LOAD_LOW 30
 
-static unsigned int get_battery_capacity(void)
+static void thermo_balance_limits(struct cpufreq_policy *policy)
 {
-	struct power_supply *psy;
+	unsigned int freq;
+	unsigned int max_freq = policy->cpuinfo.max_freq;
+	unsigned int min_freq = policy->cpuinfo.min_freq;
+	unsigned int mid_freq = (max_freq + min_freq) / 2;
+	unsigned int cur_freq = policy->cur;
+	unsigned int load_pct = 100 * (cur_freq - min_freq) / (max_freq - min_freq + 1);
+
+	// Default: assume not charging
+	bool is_charging = false;
+	int battery_pct = 100;
+
+	struct power_supply *bat = power_supply_get_by_name("battery");
 	union power_supply_propval val;
-	unsigned int cap = 100;
 
-	psy = power_supply_get_by_name("battery");
-	if (!psy)
-		return cap;
-
-	if (!power_supply_get_property(psy, POWER_SUPPLY_PROP_CAPACITY, &val))
-		cap = val.intval;
-
-	power_supply_put(psy);
-	return cap;
-}
-
-static void cpufreq_governor_adjust(struct cpufreq_policy *policy)
-{
-	unsigned int load = 0;
-	unsigned int target_freq;
-	unsigned int battery = get_battery_capacity();
-
-	// Get average load
-	load = cpufreq_quick_get_load(policy->cpu);
-	if (!load)
-		return;
-
-	if (battery <= 20) {
-		// Battery saving logic kicks in
-		if (load > 85)
-			target_freq = policy->max;
-		else if (load > 60)
-			target_freq = policy->max * 80 / 100;
-		else if (load > 40)
-			target_freq = policy->max * 60 / 100;
-		else
-			target_freq = policy->min;
-	} else {
-		// Normal dynamic behavior
-		if (load > 80)
-			target_freq = policy->max;
-		else if (load > 60)
-			target_freq = policy->max * 90 / 100;
-		else if (load > 40)
-			target_freq = policy->max * 70 / 100;
-		else
-			target_freq = policy->min;
+	if (bat) {
+		if (!power_supply_get_property(bat, POWER_SUPPLY_PROP_CAPACITY, &val))
+			battery_pct = val.intval;
+		if (!power_supply_get_property(bat, POWER_SUPPLY_PROP_STATUS, &val))
+			is_charging = (val.intval == POWER_SUPPLY_STATUS_CHARGING || val.intval == POWER_SUPPLY_STATUS_FULL);
 	}
 
-	__cpufreq_driver_target(policy, target_freq, CPUFREQ_RELATION_H);
+	if (battery_pct <= 20 && !is_charging) {
+		// Save more when battery is low and NOT charging
+		freq = (load_pct > THERMO_LOAD_HIGH) ? mid_freq :
+		       (load_pct < THERMO_LOAD_LOW) ? min_freq :
+		       mid_freq - (mid_freq / 6);
+	} else {
+		// Normal scaling behavior
+		freq = (load_pct > THERMO_LOAD_HIGH) ? max_freq :
+		       (load_pct < THERMO_LOAD_LOW) ? mid_freq :
+		       (max_freq + min_freq) / 2;
+	}
+
+	cpufreq_driver_target(policy, freq, CPUFREQ_RELATION_H);
 }
 
-static void thermaless_balance_work(struct work_struct *work)
-{
-	struct cpufreq_policy *policy = container_of(work, struct cpufreq_policy, governor_data);
-	cpufreq_governor_adjust(policy);
-	mod_timer(&policy->governor_data_timer, jiffies + GOV_CHECK_INTERVAL);
-}
-
-static int cpufreq_gov_thermaless_balance_start(struct cpufreq_policy *policy)
-{
-	timer_setup(&policy->governor_data_timer, thermaless_balance_work, 0);
-	mod_timer(&policy->governor_data_timer, jiffies + GOV_CHECK_INTERVAL);
-	return 0;
-}
-
-static void cpufreq_gov_thermaless_balance_stop(struct cpufreq_policy *policy)
-{
-	del_timer_sync(&policy->governor_data_timer);
-}
-
-static struct cpufreq_governor thermaless_balance_gov = {
-	.name		= GOV_NAME,
-	.owner		= THIS_MODULE,
-	.init		= cpufreq_gov_thermaless_balance_start,
-	.exit		= cpufreq_gov_thermaless_balance_stop,
+static struct cpufreq_governor thermo_governor = {
+	.name = "thermo_balance",
+	.owner = THIS_MODULE,
+	.limits = thermo_balance_limits,
 };
 
-static int __init thermaless_balance_init(void)
+static int __init thermo_governor_init(void)
 {
-	return cpufreq_register_governor(&thermaless_balance_gov);
+	return cpufreq_register_governor(&thermo_governor);
 }
 
-static void __exit thermaless_balance_exit(void)
+static void __exit thermo_governor_exit(void)
 {
-	cpufreq_unregister_governor(&thermaless_balance_gov);
+	cpufreq_unregister_governor(&thermo_governor);
 }
-
-module_init(thermaless_balance_init);
-module_exit(thermaless_balance_exit);
 
 MODULE_AUTHOR("Jayzee");
-MODULE_DESCRIPTION("CPUFreq Governor - Battery-aware, Thermal-Free Dynamic Scaling");
+MODULE_DESCRIPTION("Dynamic CPU governor for perf/battery, no thermal dependency");
 MODULE_LICENSE("GPL");
+
+fs_initcall(thermo_governor_init);
+module_exit(thermo_governor_exit);
