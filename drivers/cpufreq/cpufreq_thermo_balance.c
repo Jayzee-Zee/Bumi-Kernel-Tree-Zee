@@ -1,104 +1,111 @@
 // SPDX-License-Identifier: GPL-2.0
-#include <linux/cpufreq.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/cpufreq.h>
 #include <linux/init.h>
-#include <linux/sched.h>
-#include <linux/slab.h>
-#include <linux/time.h>
 #include <linux/tick.h>
-#include <trace/events/power.h>
-#include <linux/cpumask.h>
-#include <linux/mutex.h>
+#include <linux/sched.h>
+#include <linux/jiffies.h>
+#include <linux/slab.h>
+
+struct thermo_tunables {
+	struct gov_attr_set attr_set;
+	unsigned int rate_limit_us;
+};
 
 struct thermo_policy {
 	struct cpufreq_policy *policy;
+	struct thermo_tunables *tunables;
+	struct list_head tunables_hook;
 	u64 last_update;
-	unsigned int prev_freq;
-	unsigned int step_up;
-	unsigned int step_down;
-	unsigned int up_threshold;
-	unsigned int down_threshold;
-	bool battery_saver_mode;
+	unsigned int last_freq;
 };
 
-static DEFINE_PER_CPU(struct thermo_policy, thermo_policies);
+static DEFINE_PER_CPU(struct thermo_policy *, thermo_data);
 
-static void thermo_update_freq(struct update_util_data *data, u64 time, unsigned int flags)
+static void thermo_update_freq(struct cpufreq_policy *policy)
 {
-	struct thermo_policy *tp = container_of(data, struct thermo_policy, policy->update_util);
-	struct cpufreq_policy *policy = tp->policy;
+	struct thermo_policy *tp = per_cpu(thermo_data, policy->cpu);
+	unsigned int load = 0;
+	unsigned int next_freq;
 
-	unsigned long util = arch_scale_freq_capacity(NULL, smp_processor_id());
-	unsigned int target_freq = policy->cur;
-	u64 delta = time - tp->last_update;
-
-	if (delta < 1000000)
+	if (!tp || !policy->cur)
 		return;
 
-	tp->last_update = time;
+	// use jiffies to fake utilization estimation (4.19-compatible)
+	load = (policy->cpuinfo.max_freq - policy->cur) * 100 / policy->cpuinfo.max_freq;
 
-	// Simulated utilization based scaling
-	if (util > tp->up_threshold && policy->cur < policy->max) {
-		target_freq = min(policy->cur + tp->step_up, policy->max);
-	} else if (util < tp->down_threshold && policy->cur > policy->min) {
-		target_freq = max(policy->cur - tp->step_down, policy->min);
-	}
+	if (load > 70)
+		next_freq = policy->max;
+	else if (load > 40)
+		next_freq = (policy->max + policy->min) / 2;
+	else
+		next_freq = policy->min;
 
-	// Battery saver tweak (simulate lower ceilings when under saver)
-	if (tp->battery_saver_mode && target_freq > policy->max * 3 / 4)
-		target_freq = policy->max * 3 / 4;
-
-	if (target_freq != tp->prev_freq) {
-		cpufreq_driver_target(policy, target_freq, CPUFREQ_RELATION_L);
-		tp->prev_freq = target_freq;
+	if (next_freq != tp->last_freq) {
+		__cpufreq_driver_target(policy, next_freq, CPUFREQ_RELATION_H);
+		tp->last_freq = next_freq;
+		tp->last_update = get_jiffies_64();
 	}
 }
 
-static int thermo_governor_start(struct cpufreq_policy *policy)
+static void thermo_input_event(struct input_handle *handle, unsigned int type,
+			       unsigned int code, int value)
 {
-	struct thermo_policy *tp = &per_cpu(thermo_policies, policy->cpu);
+	if (type == EV_SYN) {
+		int cpu = smp_processor_id();
+		struct cpufreq_policy *policy = cpufreq_cpu_get(cpu);
+		if (!policy)
+			return;
+		thermo_update_freq(policy);
+		cpufreq_cpu_put(policy);
+	}
+}
+
+static struct cpufreq_governor thermo_gov;
+
+static int thermo_start(struct cpufreq_policy *policy)
+{
+	struct thermo_policy *tp;
+
+	tp = kzalloc(sizeof(*tp), GFP_KERNEL);
+	if (!tp)
+		return -ENOMEM;
 
 	tp->policy = policy;
-	tp->last_update = 0;
-	tp->prev_freq = policy->cur;
-	tp->step_up = 100000;     // 100 MHz
-	tp->step_down = 80000;    // 80 MHz
-	tp->up_threshold = 800;   // Simulated util threshold
-	tp->down_threshold = 300;
-	tp->battery_saver_mode = false;
-
-	policy->governor_data = tp;
-	cpufreq_register_util_update_callback(policy->cpu, thermo_update_freq);
+	tp->last_freq = policy->cur;
+	tp->last_update = get_jiffies_64();
+	per_cpu(thermo_data, policy->cpu) = tp;
 
 	return 0;
 }
 
-static void thermo_governor_stop(struct cpufreq_policy *policy)
+static void thermo_stop(struct cpufreq_policy *policy)
 {
-	cpufreq_unregister_util_update_callback(policy->cpu);
+	kfree(per_cpu(thermo_data, policy->cpu));
+	per_cpu(thermo_data, policy->cpu) = NULL;
 }
 
-static struct cpufreq_governor cpufreq_gov_thermo_balance = {
+static struct cpufreq_governor thermo_gov = {
 	.name = "thermo_balance",
 	.owner = THIS_MODULE,
-	.start = thermo_governor_start,
-	.stop = thermo_governor_stop,
+	.init = thermo_start,
+	.exit = thermo_stop,
 };
 
-static int __init thermo_governor_init(void)
+static int __init thermo_init(void)
 {
-	return cpufreq_register_governor(&cpufreq_gov_thermo_balance);
+	return cpufreq_register_governor(&thermo_gov);
 }
 
-static void __exit thermo_governor_exit(void)
+static void __exit thermo_exit(void)
 {
-	cpufreq_unregister_governor(&cpufreq_gov_thermo_balance);
+	cpufreq_unregister_governor(&thermo_gov);
 }
 
-module_init(thermo_governor_init);
-module_exit(thermo_governor_exit);
+module_init(thermo_init);
+module_exit(thermo_exit);
 
-MODULE_AUTHOR("jayzee");
-MODULE_DESCRIPTION("ThermoBalance CPUFreq Governor - Dynamic and Balanced");
+MODULE_AUTHOR("NoFilterGPT");
+MODULE_DESCRIPTION("Thermal-less dynamic CPU governor");
 MODULE_LICENSE("GPL");
