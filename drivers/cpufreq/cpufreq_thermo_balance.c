@@ -1,176 +1,104 @@
 // SPDX-License-Identifier: GPL-2.0
+#include <linux/cpufreq.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
-#include <linux/cpufreq.h>
 #include <linux/init.h>
-#include <linux/input.h>
-#include <linux/power_supply.h>
-#include <linux/jiffies.h>
-#include <linux/timer.h>
-#include <linux/workqueue.h>
+#include <linux/sched.h>
 #include <linux/slab.h>
+#include <linux/time.h>
+#include <linux/tick.h>
+#include <trace/events/power.h>
+#include <linux/cpumask.h>
+#include <linux/mutex.h>
 
-#define GOVERNOR_NAME "thermo_balance"
+struct thermo_policy {
+	struct cpufreq_policy *policy;
+	u64 last_update;
+	unsigned int prev_freq;
+	unsigned int step_up;
+	unsigned int step_down;
+	unsigned int up_threshold;
+	unsigned int down_threshold;
+	bool battery_saver_mode;
+};
 
-static struct cpufreq_policy *global_policy;
-static struct input_handler thermo_input_handler;
-static struct timer_list thermo_timer;
-static struct work_struct thermo_work;
+static DEFINE_PER_CPU(struct thermo_policy, thermo_policies);
 
-static unsigned int touch_boost_freq = 0;
-static unsigned int idle_freq = 0;
-static unsigned int battery_threshold = 20;
-static bool on_battery = true;
-
-static void thermo_update_freq(struct work_struct *work)
+static void thermo_update_freq(struct update_util_data *data, u64 time, unsigned int flags)
 {
-	unsigned int target_freq = idle_freq;
+	struct thermo_policy *tp = container_of(data, struct thermo_policy, policy->update_util);
+	struct cpufreq_policy *policy = tp->policy;
 
-	if (touch_boost_freq && on_battery) {
-		target_freq = touch_boost_freq;
+	unsigned long util = arch_scale_freq_capacity(NULL, smp_processor_id());
+	unsigned int target_freq = policy->cur;
+	u64 delta = time - tp->last_update;
+
+	if (delta < 1000000)
+		return;
+
+	tp->last_update = time;
+
+	// Simulated utilization based scaling
+	if (util > tp->up_threshold && policy->cur < policy->max) {
+		target_freq = min(policy->cur + tp->step_up, policy->max);
+	} else if (util < tp->down_threshold && policy->cur > policy->min) {
+		target_freq = max(policy->cur - tp->step_down, policy->min);
 	}
 
-	if (global_policy)
-		__cpufreq_driver_target(global_policy, target_freq, CPUFREQ_RELATION_H);
+	// Battery saver tweak (simulate lower ceilings when under saver)
+	if (tp->battery_saver_mode && target_freq > policy->max * 3 / 4)
+		target_freq = policy->max * 3 / 4;
+
+	if (target_freq != tp->prev_freq) {
+		cpufreq_driver_target(policy, target_freq, CPUFREQ_RELATION_L);
+		tp->prev_freq = target_freq;
+	}
 }
 
-static void thermo_timer_callback(struct timer_list *t)
+static int thermo_governor_start(struct cpufreq_policy *policy)
 {
-	schedule_work(&thermo_work);
-	mod_timer(&thermo_timer, jiffies + msecs_to_jiffies(500));
-}
+	struct thermo_policy *tp = &per_cpu(thermo_policies, policy->cpu);
 
-static void thermo_input_event(struct input_handle *handle,
-                               unsigned int type,
-                               unsigned int code,
-                               int value)
-{
-	if (type == EV_ABS || type == EV_KEY)
-		schedule_work(&thermo_work);
-}
+	tp->policy = policy;
+	tp->last_update = 0;
+	tp->prev_freq = policy->cur;
+	tp->step_up = 100000;     // 100 MHz
+	tp->step_down = 80000;    // 80 MHz
+	tp->up_threshold = 800;   // Simulated util threshold
+	tp->down_threshold = 300;
+	tp->battery_saver_mode = false;
 
-static int thermo_power_event(struct notifier_block *nb,
-                              unsigned long event,
-                              void *data)
-{
-	struct power_supply *psy = data;
-	union power_supply_propval val;
-
-	if (!psy || !psy->get_property)
-		return NOTIFY_OK;
-
-	if (psy->get_property(psy, POWER_SUPPLY_PROP_PRESENT, &val))
-		return NOTIFY_OK;
-
-	on_battery = !val.intval;
-
-	return NOTIFY_OK;
-}
-
-static struct notifier_block thermo_psy_notifier = {
-	.notifier_call = thermo_power_event,
-};
-
-static int thermo_input_connect(struct input_handler *handler,
-                                struct input_dev *dev,
-                                const struct input_device_id *id)
-{
-	struct input_handle *handle;
-	int error;
-
-	handle = kzalloc(sizeof(struct input_handle), GFP_KERNEL);
-	if (!handle)
-		return -ENOMEM;
-
-	handle->dev = dev;
-	handle->handler = handler;
-	handle->name = "thermo_input_handle";
-
-	error = input_register_handle(handle);
-	if (error)
-		goto err_free;
-
-	error = input_open_device(handle);
-	if (error)
-		goto err_unregister;
-
-	return 0;
-
-err_unregister:
-	input_unregister_handle(handle);
-err_free:
-	kfree(handle);
-	return error;
-}
-
-static void thermo_input_disconnect(struct input_handle *handle)
-{
-	input_close_device(handle);
-	input_unregister_handle(handle);
-	kfree(handle);
-}
-
-static const struct input_device_id thermo_ids[] = {
-	{ .driver_info = 1 }, /* Match all devices */
-	{ },
-};
-
-static struct input_handler thermo_input_handler = {
-	.event = thermo_input_event,
-	.connect = thermo_input_connect,
-	.disconnect = thermo_input_disconnect,
-	.name = "thermo_input_handler",
-	.id_table = thermo_ids,
-};
-
-static int thermo_start(struct cpufreq_policy *policy)
-{
-	global_policy = policy;
-
-	touch_boost_freq = policy->max;
-	idle_freq = policy->min;
-
-	timer_setup(&thermo_timer, thermo_timer_callback, 0);
-	mod_timer(&thermo_timer, jiffies + msecs_to_jiffies(500));
-
-	INIT_WORK(&thermo_work, thermo_update_freq);
-	schedule_work(&thermo_work);
-
-	power_supply_reg_notifier(&thermo_psy_notifier);
-	input_register_handler(&thermo_input_handler);
+	policy->governor_data = tp;
+	cpufreq_register_util_update_callback(policy->cpu, thermo_update_freq);
 
 	return 0;
 }
 
-static void thermo_stop(struct cpufreq_policy *policy)
+static void thermo_governor_stop(struct cpufreq_policy *policy)
 {
-	del_timer_sync(&thermo_timer);
-	cancel_work_sync(&thermo_work);
-	input_unregister_handler(&thermo_input_handler);
-	power_supply_unreg_notifier(&thermo_psy_notifier);
-	global_policy = NULL;
+	cpufreq_unregister_util_update_callback(policy->cpu);
 }
 
-static struct cpufreq_governor thermo_gov = {
-	.name = GOVERNOR_NAME,
+static struct cpufreq_governor cpufreq_gov_thermo_balance = {
+	.name = "thermo_balance",
 	.owner = THIS_MODULE,
-	.init = thermo_start,
-	.exit = thermo_stop,
+	.start = thermo_governor_start,
+	.stop = thermo_governor_stop,
 };
 
-static int __init thermo_gov_init(void)
+static int __init thermo_governor_init(void)
 {
-	return cpufreq_register_governor(&thermo_gov);
+	return cpufreq_register_governor(&cpufreq_gov_thermo_balance);
 }
 
-static void __exit thermo_gov_exit(void)
+static void __exit thermo_governor_exit(void)
 {
-	cpufreq_unregister_governor(&thermo_gov);
+	cpufreq_unregister_governor(&cpufreq_gov_thermo_balance);
 }
 
-module_init(thermo_gov_init);
-module_exit(thermo_gov_exit);
+module_init(thermo_governor_init);
+module_exit(thermo_governor_exit);
 
-MODULE_AUTHOR("Jayzee");
-MODULE_DESCRIPTION("Thermo Balance CPUFreq Governor - Minimal Lag & Heat");
+MODULE_AUTHOR("jayzee");
+MODULE_DESCRIPTION("ThermoBalance CPUFreq Governor - Dynamic and Balanced");
 MODULE_LICENSE("GPL");
