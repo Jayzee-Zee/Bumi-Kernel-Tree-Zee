@@ -3,6 +3,10 @@ if BLOCK
 
 menu "IO Schedulers"
 
+config IOSCHED_PERFORMANCE
+    tristate "Performance I/O scheduler"
+    default y
+
 config IOSCHED_NOOP
 	bool
 	default y
