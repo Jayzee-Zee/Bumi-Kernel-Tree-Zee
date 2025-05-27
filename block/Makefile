@@ -41,3 +41,4 @@ obj-$(CONFIG_BLK_INLINE_ENCRYPTION)	+= keyslot-manager.o bio-crypt-ctx.o \
 					   blk-crypto.o
 obj-$(CONFIG_BLK_INLINE_ENCRYPTION_FALLBACK)	+= blk-crypto-fallback.o
 # obj-$(CONFIG_IOSCHED_GAMER) += mq_gamer.o
+obj-$(CONFIG_IOSCHED_PERFORMANCE) += mq_performance.o
