@@ -2,15 +2,13 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/cpufreq.h>
-#include <linux/sched/cpufreq.h>
-#include <linux/slab.h>
+#include <linux/init.h>
 #include <linux/jiffies.h>
-#include <linux/timer.h>
+#include <linux/slab.h>
 
 struct thermo_tunables {
 	struct gov_attr_set attr_set;
-	unsigned int up_rate_limit_us;
-	unsigned int down_rate_limit_us;
+	unsigned int rate_limit_us;
 };
 
 struct thermo_policy {
@@ -22,50 +20,33 @@ struct thermo_policy {
 
 static DEFINE_PER_CPU(struct thermo_policy *, thermo_data);
 
-static unsigned int compute_target_freq(struct cpufreq_policy *policy, unsigned int util)
-{
-	unsigned int max = policy->max;
-	unsigned int min = policy->min;
-
-	if (util >= 85)
-		return max; // full boost
-	else if (util >= 60)
-		return max - (max - min) / 4; // 75%
-	else if (util >= 30)
-		return max - (max - min) / 2; // 50%
-	else
-		return min; // chill
-}
-
-static void thermo_balance_update(struct cpufreq_policy *policy)
+static void thermo_update_freq(struct cpufreq_policy *policy)
 {
 	struct thermo_policy *tp = per_cpu(thermo_data, policy->cpu);
-	unsigned int util;
+	unsigned int util = 0;
 	unsigned int next_freq;
-	u64 now = jiffies;
-	u64 delta;
 
-	if (!tp)
+	if (!tp || !policy->cur)
 		return;
 
-	util = sched_cpu_util(policy->cpu);
-	next_freq = compute_target_freq(policy, util);
-	delta = jiffies_to_usecs(now - tp->last_update);
+	// Estimating utilization as percent of max freq
+	util = policy->cur * 100 / policy->cpuinfo.max_freq;
 
-	if (next_freq > tp->last_freq &&
-	    delta < tp->tunables->up_rate_limit_us)
-		return;
+	if (util > 80)
+		next_freq = policy->max;
+	else if (util > 50)
+		next_freq = (policy->max + policy->min) / 2;
+	else
+		next_freq = policy->min;
 
-	if (next_freq < tp->last_freq &&
-	    delta < tp->tunables->down_rate_limit_us)
-		return;
-
-	__cpufreq_driver_target(policy, next_freq, CPUFREQ_RELATION_H);
-	tp->last_freq = next_freq;
-	tp->last_update = now;
+	if (next_freq != tp->last_freq) {
+		__cpufreq_driver_target(policy, next_freq, CPUFREQ_RELATION_H);
+		tp->last_freq = next_freq;
+		tp->last_update = get_jiffies_64();
+	}
 }
 
-static int thermo_balance_start(struct cpufreq_policy *policy)
+static int thermo_start(struct cpufreq_policy *policy)
 {
 	struct thermo_policy *tp;
 
@@ -75,18 +56,17 @@ static int thermo_balance_start(struct cpufreq_policy *policy)
 
 	tp->policy = policy;
 	tp->last_freq = policy->cur;
-	tp->last_update = jiffies;
+	tp->last_update = get_jiffies_64();
 
 	tp->tunables = kzalloc(sizeof(*tp->tunables), GFP_KERNEL);
-	tp->tunables->up_rate_limit_us = 20000;
-	tp->tunables->down_rate_limit_us = 40000;
+	tp->tunables->rate_limit_us = 20000;
 
 	per_cpu(thermo_data, policy->cpu) = tp;
 
 	return 0;
 }
 
-static void thermo_balance_stop(struct cpufreq_policy *policy)
+static void thermo_stop(struct cpufreq_policy *policy)
 {
 	struct thermo_policy *tp = per_cpu(thermo_data, policy->cpu);
 
@@ -97,25 +77,25 @@ static void thermo_balance_stop(struct cpufreq_policy *policy)
 	}
 }
 
-static void thermo_balance_limits(struct cpufreq_policy *policy)
+static void thermo_limits(struct cpufreq_policy *policy)
 {
-	thermo_balance_update(policy);
+	thermo_update_freq(policy);
 }
 
-static int thermo_balance_update_policy(struct cpufreq_policy *policy)
+static int thermo_policy_update(struct cpufreq_policy *policy)
 {
-	thermo_balance_update(policy);
+	thermo_update_freq(policy);
 	return 0;
 }
 
 static struct cpufreq_governor thermo_balance_gov = {
 	.name = "thermo_balance",
 	.owner = THIS_MODULE,
-	.init = thermo_balance_start,
-	.exit = thermo_balance_stop,
-	.limits = thermo_balance_limits,
-	.start = thermo_balance_update_policy,
-	.stop = thermo_balance_stop,
+	.init = thermo_start,
+	.exit = thermo_stop,
+	.start = thermo_policy_update,
+	.stop = thermo_stop,
+	.limits = thermo_limits,
 	.dynamic_switching = true,
 };
 
@@ -133,5 +113,5 @@ module_init(thermo_balance_init);
 module_exit(thermo_balance_exit);
 
 MODULE_AUTHOR("Jayzee");
-MODULE_DESCRIPTION("Battery + Gaming Hybrid CPU Governor");
+MODULE_DESCRIPTION("Dynamic CPUFreq governor for performance and battery");
 MODULE_LICENSE("GPL");
